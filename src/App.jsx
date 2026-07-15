@@ -249,7 +249,7 @@ function HomePage({
       <section className="category-section">
         <p className="section-copy">ನಿಮ್ಮ ಸರಕನ್ನು ಕೆಳಗೆ ತ್ವರಿತವಾಗಿ ಆಯ್ಕೆ ಮಾಡಿ.</p>
       </section>
-      <div className="category-tabs">
+      <div className={`category-tabs ${heroVisible ? "" : "is-stuck"}`}>
         {categories.map((label) => (
           <button
             key={label}

@@ -301,6 +301,10 @@ img {
   position: sticky;
   top: 56px;
   z-index: 19;
+  box-shadow: none;
+}
+
+.category-tabs.is-stuck {
   box-shadow: 0 4px 6px -4px rgba(0, 0, 0, 0.12);
 }
 
