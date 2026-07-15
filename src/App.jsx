@@ -382,7 +382,7 @@ function ResultsPage({
             <h2>{selectedCommodity}</h2>
           </div>
           <button className="filter-button" onClick={onFilterOpen} type="button">
-            <span className="filter-icon" aria-hidden="true" />
+            <img src={assets.filter} alt="" />
             <span>ಫಿಲ್ಟರ್</span>
           </button>
         </div>

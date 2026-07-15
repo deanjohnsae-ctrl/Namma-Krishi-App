@@ -443,14 +443,9 @@ img {
   background: var(--brand-red-light);
 }
 
-.filter-icon {
+.filter-button img {
   width: 24px;
   height: 24px;
-  flex: 0 0 24px;
-  display: block;
-  background: var(--brand-red);
-  -webkit-mask: url("/assets/filter.svg") center / contain no-repeat;
-  mask: url("/assets/filter.svg") center / contain no-repeat;
 }
 
 .filter-summary {
