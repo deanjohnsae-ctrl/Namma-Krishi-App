@@ -987,6 +987,10 @@ img {
   flex-wrap: wrap;
 }
 
+.filter-summary-row > .chip-row.wrap {
+  flex-wrap: nowrap;
+}
+
 .filter-chip {
   display: inline-flex;
   align-items: center;
