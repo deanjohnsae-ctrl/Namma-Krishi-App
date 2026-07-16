@@ -261,6 +261,12 @@ img {
   object-fit: contain;
 }
 
+.floating-search-panel .search-submit img,
+.floating-search-panel .search-close img {
+  width: 32px;
+  height: 32px;
+}
+
 .hero-copy .search-field {
   margin: 0 16px;
   width: calc(100% - 32px);
