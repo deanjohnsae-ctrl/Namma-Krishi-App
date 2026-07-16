@@ -136,8 +136,6 @@ function App() {
   useDialogAccessibility(searchOpen, searchDialogRef, closeSearch, searchReturnFocusRef);
   useDialogAccessibility(filterOpen, filterDialogRef, closeFilter, filterReturnFocusRef);
 
-  const activeQuery = draftQuery || query || selectedCommodity;
-
   const categoryCommodities = useMemo(() => {
     const items = commoditiesByCategory[selectedCategory];
     return (items || []).map((name, index) => ({
@@ -225,6 +223,10 @@ function App() {
       searchReturnFocusRef.current = event.currentTarget;
     }
 
+    if (!searchOpen && view === "results") {
+      setDraftQuery(query || selectedCommodity);
+    }
+
     setSearchOpen(true);
   };
 
@@ -269,7 +271,7 @@ function App() {
         />
       ) : (
         <ResultsPage
-          activeQuery={activeQuery}
+          searchValue={draftQuery}
           expandedCardId={expandedCardId}
           filterOpen={filterOpen}
           filteredResults={filteredResults}
@@ -472,7 +474,6 @@ function HomePage({
 }
 
 function ResultsPage({
-  activeQuery,
   draftSelectedMarkets,
   draftSelectedVarieties,
   expandedCardId,
@@ -496,6 +497,7 @@ function ResultsPage({
   onToggleMarket,
   onToggleVariety,
   searchOpen,
+  searchValue,
   searchSuggestionRows,
   searchDialogRef,
   selectedCommodity,
@@ -537,7 +539,12 @@ function ResultsPage({
           <button aria-label="ಹಿಂದೆ" className="icon-button" onClick={onBack} type="button">
             <img src={assets.back} alt="" />
           </button>
-        <div className="brand-inline">
+        <div aria-label="Go to home page" className="brand-inline brand-link" onClick={onBack} role="button" tabIndex={0} onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onBack();
+          }
+        }}>
           <img src={assets.logo} alt="" />
           <span>ನಮ್ಮ ಕೃಷಿ ಬೆಲೆಗಳು</span>
         </div>
@@ -636,7 +643,7 @@ function ResultsPage({
             tabIndex="-1"
           >
             <SearchField
-              value={activeQuery}
+              value={searchValue}
               placeholder="ಸರಕುಗಳನ್ನು ಹುಡುಕಿ"
               onChange={onQueryChange}
               onFocus={onSearchOpen}
@@ -817,12 +824,7 @@ function MetaItem({ label, value, subvalue }) {
 function EmptyResults({ hasActiveFilters, onClearFilters, onSearchOpen }) {
   return (
     <section aria-live="polite" className="empty-state">
-      <svg className="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <circle cx="11" cy="11" r="7" />
-        <path d="m21 21-4.3-4.3" />
-        <line x1="8" y1="11" x2="14" y2="11" />
-        <line x1="11" y1="8" x2="11" y2="14" />
-      </svg>
+      <img className="empty-state-icon" src={assets.emptyState} alt="" aria-hidden="true" />
       <h3>ಫಲಿತಾಂಶಗಳು ದೊರಕಲಿಲ್ಲ</h3>
       <p>ನಿಮ್ಮ ಹುಡುಕಾಟ ಅಥವಾ ಆಯ್ದ ಫಿಲ್ಟರ್‌ಗಳಿಗೆ ಹೊಂದುವ ದಾಖಲೆಗಳು ಸಿಗಲಿಲ್ಲ.</p>
     </section>

@@ -118,6 +118,7 @@ export const assets = {
   marketThumb: asset("market-thumb.png"),
   graph: asset("graph.png"),
   category: asset("category.png"),
+  emptyState: asset("empty-state.svg"),
   suggestionCommodity: asset("suggestion-commodity.svg"),
   suggestionMarket: asset("suggestion-market.svg"),
   suggestionVariety: asset("suggestion-variety.svg"),
