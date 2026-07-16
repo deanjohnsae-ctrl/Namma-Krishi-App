@@ -889,14 +889,16 @@ img {
 }
 
 .suggestion-kind {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 4px;
+  min-height: 20px;
   font-size: 12px;
   line-height: 20px;
 }
 
 .suggestion-kind img {
+  display: block;
   width: 20px;
   height: 20px;
   flex: 0 0 20px;
