@@ -10,6 +10,72 @@ import {
   varietyOptions,
 } from "./data";
 
+function getFocusableElements(container) {
+  if (!container) return [];
+
+  return Array.from(
+    container.querySelectorAll(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    ),
+  );
+}
+
+function useDialogAccessibility(isOpen, dialogRef, onClose, returnFocusRef) {
+  useEffect(() => {
+    if (!isOpen) {
+      const returnTarget = returnFocusRef.current;
+      if (returnTarget && typeof returnTarget.focus === "function") {
+        requestAnimationFrame(() => returnTarget.focus());
+      }
+      return undefined;
+    }
+
+    const dialog = dialogRef.current;
+    if (!dialog) return undefined;
+
+    const frameId = requestAnimationFrame(() => {
+      if (dialog.contains(document.activeElement)) return;
+      const [firstFocusable] = getFocusableElements(dialog);
+      (firstFocusable || dialog).focus();
+    });
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+
+      const focusable = getFocusableElements(dialog);
+      if (focusable.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const firstFocusable = focusable[0];
+      const lastFocusable = focusable[focusable.length - 1];
+
+      if (event.shiftKey && document.activeElement === firstFocusable) {
+        event.preventDefault();
+        lastFocusable.focus();
+      } else if (!event.shiftKey && document.activeElement === lastFocusable) {
+        event.preventDefault();
+        firstFocusable.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [dialogRef, isOpen, onClose, returnFocusRef]);
+}
+
 function App() {
   const [view, setView] = useState("home");
   const [query, setQuery] = useState("");
@@ -20,7 +86,13 @@ function App() {
   const [selectedCommodity, setSelectedCommodity] = useState("ಸೇಬು");
   const [selectedMarkets, setSelectedMarkets] = useState([]);
   const [selectedVarieties, setSelectedVarieties] = useState([]);
+  const [draftSelectedMarkets, setDraftSelectedMarkets] = useState([]);
+  const [draftSelectedVarieties, setDraftSelectedVarieties] = useState([]);
   const [expandedCardId, setExpandedCardId] = useState(null);
+  const searchDialogRef = useRef(null);
+  const filterDialogRef = useRef(null);
+  const searchReturnFocusRef = useRef(null);
+  const filterReturnFocusRef = useRef(null);
 
   useEffect(() => {
     const overlayOpen = searchOpen || filterOpen;
@@ -52,6 +124,17 @@ function App() {
       window.scrollTo(0, scrollY);
     };
   }, [filterOpen, searchOpen]);
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+  };
+
+  const closeFilter = () => {
+    setFilterOpen(false);
+  };
+
+  useDialogAccessibility(searchOpen, searchDialogRef, closeSearch, searchReturnFocusRef);
+  useDialogAccessibility(filterOpen, filterDialogRef, closeFilter, filterReturnFocusRef);
 
   const activeQuery = draftQuery || query || selectedCommodity;
 
@@ -100,6 +183,7 @@ function App() {
     setQuery(nextQuery || nextCommodity);
     setDraftQuery(nextQuery || nextCommodity);
     setSearchOpen(false);
+    setExpandedCardId(null);
     setView("results");
   };
 
@@ -124,9 +208,34 @@ function App() {
     setSelectedVarieties([]);
   };
 
+  const clearDraftFilters = () => {
+    setDraftSelectedMarkets([]);
+    setDraftSelectedVarieties([]);
+  };
+
   const applyFilters = () => {
+    setSelectedMarkets(draftSelectedMarkets);
+    setSelectedVarieties(draftSelectedVarieties);
     setFilterOpen(false);
     setView("results");
+  };
+
+  const openSearch = (event) => {
+    if (!searchOpen && event?.currentTarget instanceof HTMLButtonElement) {
+      searchReturnFocusRef.current = event.currentTarget;
+    }
+
+    setSearchOpen(true);
+  };
+
+  const openFilter = (event) => {
+    if (event?.currentTarget instanceof HTMLButtonElement) {
+      filterReturnFocusRef.current = event.currentTarget;
+    }
+
+    setDraftSelectedMarkets(selectedMarkets);
+    setDraftSelectedVarieties(selectedVarieties);
+    setFilterOpen(true);
   };
 
   const showFilterSummary = view === "results" && (selectedMarkets.length > 0 || selectedVarieties.length > 0);
@@ -146,14 +255,15 @@ function App() {
             const nextQuery = value.trim() || selectedCommodity;
             goToResults(nextQuery, nextQuery);
           }}
-          onSearchOpen={() => setSearchOpen(true)}
-          onCloseSearch={() => setSearchOpen(false)}
+          onSearchOpen={openSearch}
+          onCloseSearch={closeSearch}
           onSuggestionSelect={(item) => {
             setDraftQuery(item.title);
             goToResults(item.title, item.title);
           }}
           searchOpen={searchOpen}
           searchSuggestionRows={searchSuggestionRows}
+          searchDialogRef={searchDialogRef}
           selectedCategory={selectedCategory}
           categoryCommodities={categoryCommodities}
         />
@@ -170,8 +280,10 @@ function App() {
             setView("home");
           }}
           onClearFilters={clearFilters}
-          onCloseSearch={() => setSearchOpen(false)}
-          onFilterOpen={() => setFilterOpen(true)}
+          onClearDraftFilters={clearDraftFilters}
+          onCloseFilter={closeFilter}
+          onCloseSearch={closeSearch}
+          onFilterOpen={openFilter}
           onQueryChange={(value) => {
             setDraftQuery(value);
             setSearchOpen(true);
@@ -184,27 +296,41 @@ function App() {
             }
             setQuery(nextQuery);
             setDraftQuery(nextQuery);
-            setSearchOpen(false);
+            setSelectedCommodity(nextQuery);
+            setExpandedCardId(null);
+            closeSearch();
           }}
-          onSearchOpen={() => setSearchOpen(true)}
+          onSearchOpen={openSearch}
           onSuggestionSelect={(item) => {
             setDraftQuery(item.title);
             setQuery(item.title);
-            setSearchOpen(false);
+            setSelectedCommodity(item.title);
+            setExpandedCardId(null);
+            closeSearch();
           }}
+          onRemoveAppliedMarket={(market) =>
+            toggleSelection(market, selectedMarkets, setSelectedMarkets)
+          }
+          onRemoveAppliedVariety={(variety) =>
+            toggleSelection(variety, selectedVarieties, setSelectedVarieties)
+          }
           onToggleCard={(cardId) =>
             setExpandedCardId((currentId) => (currentId === cardId ? null : cardId))
           }
           onToggleMarket={(market) =>
-            toggleSelection(market, selectedMarkets, setSelectedMarkets)
+            toggleSelection(market, draftSelectedMarkets, setDraftSelectedMarkets)
           }
           onToggleVariety={(variety) =>
-            toggleSelection(variety, selectedVarieties, setSelectedVarieties)
+            toggleSelection(variety, draftSelectedVarieties, setDraftSelectedVarieties)
           }
           onApplyFilters={applyFilters}
+          draftSelectedMarkets={draftSelectedMarkets}
+          draftSelectedVarieties={draftSelectedVarieties}
+          filterDialogRef={filterDialogRef}
           query={query}
           searchOpen={searchOpen}
           searchSuggestionRows={searchSuggestionRows}
+          searchDialogRef={searchDialogRef}
           selectedCommodity={selectedCommodity}
           selectedMarkets={selectedMarkets}
           selectedVarieties={selectedVarieties}
@@ -226,6 +352,7 @@ function HomePage({
   onSuggestionSelect,
   searchOpen,
   searchSuggestionRows,
+  searchDialogRef,
   selectedCategory,
   categoryCommodities,
 }) {
@@ -252,6 +379,7 @@ function HomePage({
             <span>ನಮ್ಮ ಕೃಷಿ ಬೆಲೆಗಳು</span>
           </div>
           <button
+            aria-label="ಹುಡುಕಾಟ ತೆರೆಯಿರಿ"
             className={`icon-button sticky-search-btn ${heroVisible ? "" : "visible"}`}
             onClick={onSearchOpen}
             type="button"
@@ -318,7 +446,14 @@ function HomePage({
       {searchOpen && (
         <>
           <div className="screen-overlay" onClick={onCloseSearch} />
-          <div className="floating-search-panel home-search">
+          <div
+            aria-label="ಹುಡುಕಾಟ"
+            aria-modal="true"
+            className="floating-search-panel home-search"
+            ref={searchDialogRef}
+            role="dialog"
+            tabIndex="-1"
+          >
             <SearchField
               value={searchValue}
               placeholder="ಟೊಮೇಟೊ, ಮೈಸೂರು, ಅಥವಾ ಸ್ಥಳೀಯ ಎಂದು ಪ್ರಯತ್ನಿಸಿ"
@@ -338,15 +473,22 @@ function HomePage({
 
 function ResultsPage({
   activeQuery,
+  draftSelectedMarkets,
+  draftSelectedVarieties,
   expandedCardId,
   filterOpen,
+  filterDialogRef,
   filteredResults,
   onApplyFilters,
   onBack,
+  onClearDraftFilters,
   onClearFilters,
+  onCloseFilter,
   onCloseSearch,
   onFilterOpen,
   onQueryChange,
+  onRemoveAppliedMarket,
+  onRemoveAppliedVariety,
   onSearchSubmit,
   onSearchOpen,
   onSuggestionSelect,
@@ -355,6 +497,7 @@ function ResultsPage({
   onToggleVariety,
   searchOpen,
   searchSuggestionRows,
+  searchDialogRef,
   selectedCommodity,
   selectedMarkets,
   selectedVarieties,
@@ -391,14 +534,14 @@ function ResultsPage({
     <div className="page results-page">
       <header className="topbar">
         <div className="topbar-inner results-topbar-inner">
-          <button className="icon-button" onClick={onBack} type="button">
+          <button aria-label="ಹಿಂದೆ" className="icon-button" onClick={onBack} type="button">
             <img src={assets.back} alt="" />
           </button>
         <div className="brand-inline">
           <img src={assets.logo} alt="" />
           <span>ನಮ್ಮ ಕೃಷಿ ಬೆಲೆಗಳು</span>
         </div>
-          <button className="icon-button" onClick={onSearchOpen} type="button">
+          <button aria-label="ಹುಡುಕಾಟ ತೆರೆಯಿರಿ" className="icon-button" onClick={onSearchOpen} type="button">
             <img src={assets.search} alt="" />
           </button>
         </div>
@@ -430,10 +573,10 @@ function ResultsPage({
                 </div>
                 <div className="chip-row wrap">
                   {selectedMarkets.map((item) => (
-                    <FilterChip
+                    <RemovableFilterChip
                       key={item}
                       label={item}
-                      onRemove={() => onToggleMarket(item)}
+                      onRemove={() => onRemoveAppliedMarket(item)}
                       tone="market"
                     />
                   ))}
@@ -448,10 +591,10 @@ function ResultsPage({
                 </div>
                 <div className="chip-row wrap">
                   {selectedVarieties.map((item) => (
-                    <FilterChip
+                    <RemovableFilterChip
                       key={item}
                       label={item}
-                      onRemove={() => onToggleVariety(item)}
+                      onRemove={() => onRemoveAppliedVariety(item)}
                       tone="variety"
                     />
                   ))}
@@ -463,20 +606,35 @@ function ResultsPage({
       )}
 
       <main className="results-content">
-        {filteredResults.map((card) => (
-          <PriceCard
-            card={card}
-            expanded={expandedCardId === card.id}
-            key={card.id}
-            onToggle={() => onToggleCard(card.id)}
+        {filteredResults.length > 0 ? (
+          filteredResults.map((card) => (
+            <PriceCard
+              card={card}
+              expanded={expandedCardId === card.id}
+              key={card.id}
+              onToggle={() => onToggleCard(card.id)}
+            />
+          ))
+        ) : (
+          <EmptyResults
+            hasActiveFilters={selectedMarkets.length > 0 || selectedVarieties.length > 0}
+            onClearFilters={onClearFilters}
+            onSearchOpen={onSearchOpen}
           />
-        ))}
+        )}
       </main>
 
       {searchOpen && (
         <>
           <div className="screen-overlay" onClick={onCloseSearch} />
-          <div className="floating-search-panel results-search">
+          <div
+            aria-label="ಹುಡುಕಾಟ"
+            aria-modal="true"
+            className="floating-search-panel results-search"
+            ref={searchDialogRef}
+            role="dialog"
+            tabIndex="-1"
+          >
             <SearchField
               value={activeQuery}
               placeholder="ಸರಕುಗಳನ್ನು ಹುಡುಕಿ"
@@ -495,16 +653,17 @@ function ResultsPage({
 
       {filterOpen && (
         <>
-          <div className="screen-overlay" onClick={onApplyFilters} />
+          <div className="screen-overlay" onClick={onCloseFilter} />
           <FilterDialog
+            dialogRef={filterDialogRef}
             marketOptions={marketOptions}
             onApply={onApplyFilters}
-            onClear={onClearFilters}
-            onClose={onApplyFilters}
+            onClear={onClearDraftFilters}
+            onClose={onCloseFilter}
             onToggleMarket={onToggleMarket}
             onToggleVariety={onToggleVariety}
-            selectedMarkets={selectedMarkets}
-            selectedVarieties={selectedVarieties}
+            selectedMarkets={draftSelectedMarkets}
+            selectedVarieties={draftSelectedVarieties}
             varietyOptions={varietyOptions}
           />
         </>
@@ -655,7 +814,27 @@ function MetaItem({ label, value, subvalue }) {
   );
 }
 
+function EmptyResults({ hasActiveFilters, onClearFilters, onSearchOpen }) {
+  return (
+    <section aria-live="polite" className="empty-state">
+      <h3>ಫಲಿತಾಂಶಗಳು ದೊರಕಲಿಲ್ಲ</h3>
+      <p>ನಿಮ್ಮ ಹುಡುಕಾಟ ಅಥವಾ ಆಯ್ದ ಫಿಲ್ಟರ್‌ಗಳಿಗೆ ಹೊಂದುವ ದಾಖಲೆಗಳು ಸಿಗಲಿಲ್ಲ.</p>
+      <div className="empty-state-actions">
+        {hasActiveFilters && (
+          <button className="empty-state-button secondary" onClick={onClearFilters} type="button">
+            ಫಿಲ್ಟರ್ ತೆರವುಗೊಳಿಸಿ
+          </button>
+        )}
+        <button className="empty-state-button" onClick={onSearchOpen} type="button">
+          ಮತ್ತೆ ಹುಡುಕಿ
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function FilterDialog({
+  dialogRef,
   marketOptions,
   onApply,
   onClear,
@@ -669,10 +848,17 @@ function FilterDialog({
   const [openGroup, setOpenGroup] = useState(null);
 
   return (
-    <div className="filter-dialog">
+    <div
+      aria-label="ಫಿಲ್ಟರ್"
+      aria-modal="true"
+      className="filter-dialog"
+      ref={dialogRef}
+      role="dialog"
+      tabIndex="-1"
+    >
       <div className="dialog-header">
         <h3>ಫಿಲ್ಟರ್ ಫಲಿತಾಂಶಗಳು</h3>
-        <button className="icon-button close" onClick={onClose} type="button">
+        <button aria-label="ಫಿಲ್ಟರ್ ಮುಚ್ಚಿ" className="icon-button close" onClick={onClose} type="button">
           <img src={assets.close} alt="" />
         </button>
       </div>
@@ -718,7 +904,7 @@ function FilterGroup({ expanded, onToggle, onToggleExpanded, options, selectedVa
       {selectedValues.length > 0 && (
         <div className="chip-row wrap filter-chip-row">
           {selectedValues.map((item) => (
-            <FilterChip key={item} label={item} onRemove={() => onToggle(item)} />
+            <RemovableFilterChip key={item} label={item} onRemove={() => onToggle(item)} />
           ))}
         </div>
       )}
@@ -768,6 +954,20 @@ function FilterChip({ label, onRemove, tone }) {
       <span>{label}</span>
       <span className="chip-close">×</span>
     </div>
+  );
+}
+
+function RemovableFilterChip({ label, onRemove, tone }) {
+  return (
+    <button
+      aria-label={`${label} ತೆಗೆದುಹಾಕಿ`}
+      className={`filter-chip ${tone ? `filter-chip-${tone}` : ""}`}
+      onClick={onRemove}
+      type="button"
+    >
+      <span>{label}</span>
+      <span aria-hidden="true" className="chip-close">×</span>
+    </button>
   );
 }
 
