@@ -22,6 +22,37 @@ function App() {
   const [selectedVarieties, setSelectedVarieties] = useState([]);
   const [expandedCardId, setExpandedCardId] = useState(null);
 
+  useEffect(() => {
+    const overlayOpen = searchOpen || filterOpen;
+    if (!overlayOpen) return undefined;
+
+    const scrollY = window.scrollY;
+    const bodyStyle = document.body.style;
+    const htmlStyle = document.documentElement.style;
+    const previousBodyStyles = {
+      overflow: bodyStyle.overflow,
+      position: bodyStyle.position,
+      top: bodyStyle.top,
+      width: bodyStyle.width,
+    };
+    const previousHtmlOverflow = htmlStyle.overflow;
+
+    htmlStyle.overflow = "hidden";
+    bodyStyle.overflow = "hidden";
+    bodyStyle.position = "fixed";
+    bodyStyle.top = `-${scrollY}px`;
+    bodyStyle.width = "100%";
+
+    return () => {
+      htmlStyle.overflow = previousHtmlOverflow;
+      bodyStyle.overflow = previousBodyStyles.overflow;
+      bodyStyle.position = previousBodyStyles.position;
+      bodyStyle.top = previousBodyStyles.top;
+      bodyStyle.width = previousBodyStyles.width;
+      window.scrollTo(0, scrollY);
+    };
+  }, [filterOpen, searchOpen]);
+
   const activeQuery = draftQuery || query || selectedCommodity;
 
   const categoryCommodities = useMemo(() => {
