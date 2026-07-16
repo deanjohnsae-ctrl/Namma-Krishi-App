@@ -783,7 +783,7 @@ function PriceCard({ card, expanded, onToggle }) {
         <MetaItem label="ಬೆಲೆ ಅಪ್ಡೇಟ್‌ಗಳು" value={card.previousUpdate} />
       </div>
 
-      <div className="data-source">ಮಾಹಿತಿ ಮೂಲ:www.example.com</div>
+      <div className="data-source">ಮಾಹಿತಿ ಮೂಲ: www.example.com</div>
 
       {expanded && (
         <div className="graph-panel">
@@ -817,18 +817,14 @@ function MetaItem({ label, value, subvalue }) {
 function EmptyResults({ hasActiveFilters, onClearFilters, onSearchOpen }) {
   return (
     <section aria-live="polite" className="empty-state">
+      <svg className="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7" />
+        <path d="m21 21-4.3-4.3" />
+        <line x1="8" y1="11" x2="14" y2="11" />
+        <line x1="11" y1="8" x2="11" y2="14" />
+      </svg>
       <h3>ಫಲಿತಾಂಶಗಳು ದೊರಕಲಿಲ್ಲ</h3>
       <p>ನಿಮ್ಮ ಹುಡುಕಾಟ ಅಥವಾ ಆಯ್ದ ಫಿಲ್ಟರ್‌ಗಳಿಗೆ ಹೊಂದುವ ದಾಖಲೆಗಳು ಸಿಗಲಿಲ್ಲ.</p>
-      <div className="empty-state-actions">
-        {hasActiveFilters && (
-          <button className="empty-state-button secondary" onClick={onClearFilters} type="button">
-            ಫಿಲ್ಟರ್ ತೆರವುಗೊಳಿಸಿ
-          </button>
-        )}
-        <button className="empty-state-button" onClick={onSearchOpen} type="button">
-          ಮತ್ತೆ ಹುಡುಕಿ
-        </button>
-      </div>
     </section>
   );
 }
