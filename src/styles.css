@@ -644,10 +644,16 @@ img {
   gap: 24px;
 }
 
+.results-content.is-empty {
+  min-height: calc(100vh - 220px);
+  place-items: center;
+}
+
 .empty-state {
   background: transparent;
   padding: 32px 20px;
   text-align: center;
+  width: min(100%, 720px);
 }
 
 .empty-state-icon {

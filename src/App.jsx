@@ -612,7 +612,7 @@ function ResultsPage({
         </section>
       )}
 
-      <main className="results-content">
+      <main className={`results-content ${filteredResults.length === 0 ? "is-empty" : ""}`}>
         {filteredResults.length > 0 ? (
           filteredResults.map((card) => (
             <PriceCard
