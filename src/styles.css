@@ -610,7 +610,7 @@ img {
 }
 
 .filter-chip-market .chip-close {
-  color: #888;
+  color: var(--brand-red);
 }
 
 .filter-chip-variety {
@@ -620,7 +620,7 @@ img {
 }
 
 .filter-chip-variety .chip-close {
-  color: #888;
+  color: var(--brand-red);
 }
 
 .results-content {
@@ -1163,7 +1163,7 @@ img {
 .filter-line .line {
   flex: 1;
   height: 1px;
-  background: #4CAF50;
+  background: #d1d5db;
 }
 
 .chip-row {
